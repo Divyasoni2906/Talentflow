@@ -216,3 +216,43 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--c
 .submission-success .btn-primary { margin-top: var(--spacing-6); }
 .candidate-card-link { text-decoration: none; color: inherit; }
 
+/*  NEW: Role Switcher in Header ---  */
+.role-switcher {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    background-color: var(--color-bg-light);
+    padding: var(--spacing-1);
+    border-radius: 999px;
+}
+.role-switcher label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: var(--spacing-1) var(--spacing-3);
+    color: var(--color-text-secondary);
+    transition: color 0.2s ease;
+}
+.role-switcher label.active {
+    color: var(--color-text-primary);
+}
+.toggle-switch {
+    width: 40px;
+    height: 22px;
+    background-color: var(--color-bg-lighter);
+    border-radius: 999px;
+    cursor: pointer;
+    padding: 2px;
+}
+.toggle-knob {
+    width: 18px;
+    height: 18px;
+    background-color: var(--color-primary);
+    border-radius: 50%;
+    transition: transform 0.2s ease-in-out;
+}
+.toggle-knob.candidate {
+    transform: translateX(0);
+}
+.toggle-knob.hr {
+    transform: translateX(18px);
+}
