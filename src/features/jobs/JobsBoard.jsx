@@ -34,12 +34,18 @@ const JobModal = ({ isOpen, onClose, initialData }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!title.trim()) { setError('Job title is required.'); return; }
-        const jobData = { title: title.trim(), slug: title.trim().toLowerCase().replace(/\s+/g, '-'), tags: tags.split(',').map(t => t.trim()).filter(Boolean), status };
+        const jobData = { /* ... */ };
         try {
             if (isEditMode) { await updateJob({ id: initialData.id, ...jobData }).unwrap(); }
             else { await addJob(jobData).unwrap(); }
             onClose();
-        } catch (err) { setError('Failed to save job.'); }
+        } catch (err) {
+            if (err.status === 409) {
+                setError(err.data.error); // Show unique slug error
+            } else {
+                setError('A server error occurred. Please try again.');
+            }
+        }
     };
 
     if (!isOpen) return null;

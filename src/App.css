@@ -203,7 +203,8 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--c
 }
 
 
-/* --- NEW: Candidate Profile Page --- */
+.back-link { display: inline-flex; align-items: center; gap: var(--spacing-2); color: var(--color-text-secondary); text-decoration: none; margin-bottom: var(--spacing-4); font-weight: 500; }
+.back-link:hover { color: var(--color-text-primary); }
 .candidate-profile-container { max-width: 800px; margin: 0 auto; }
 .profile-header { display: flex; align-items: center; gap: var(--spacing-6); padding-bottom: var(--spacing-6); border-bottom: 1px solid var(--color-border); }
 .profile-avatar { background-color: var(--color-bg-lighter); border-radius: 999px; padding: var(--spacing-4); }
@@ -218,6 +219,8 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--c
 .timeline-date { font-size: 0.875rem; color: var(--color-text-secondary); }
 .timeline-title { font-weight: 600; margin: var(--spacing-1) 0; }
 .timeline-notes { font-size: 0.875rem; color: var(--color-text-secondary); display: flex; align-items: center; gap: var(--spacing-2); background-color: var(--color-bg-light); padding: var(--spacing-2); border-radius: var(--radius-md); }
+
+
 
 /* --- NEW: Assessment Runtime --- */
 .assessment-runtime-container { max-width: 700px; margin: 0 auto; }

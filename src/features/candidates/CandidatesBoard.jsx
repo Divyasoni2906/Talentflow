@@ -1,15 +1,17 @@
 import React, { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, closestCorners } from '@dnd-kit/core';
 import { SortableContext, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { FixedSizeList as List } from 'react-window'; // Import for virtualization
 import { useGetCandidatesQuery, useUpdateCandidateStageMutation } from '../api/apiSlice';
 import { STAGE_LABELS, STAGE_ORDER } from '../../db';
-import { Search } from 'lucide-react';
+import { Search, GripVertical } from 'lucide-react';
 import '../../App.css';
-import { Link } from 'react-router-dom';
 
 // --- Draggable Candidate Card ---
-const CandidateCard = ({ candidate }) => {
+// It's important to wrap this in React.memo for performance with virtualization
+const CandidateCard = React.memo(({ candidate }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: candidate.id,
     });
@@ -18,34 +20,54 @@ const CandidateCard = ({ candidate }) => {
         transition,
         opacity: isDragging ? 0.5 : 1,
     };
-    return (
-      <Link to={`/candidates/${candidate.id}`} className="candidate-card-link">
-        <div
-          ref={setNodeRef}
-          style={style}
-          {...attributes}
-          {...listeners}
-          className="candidate-card"
-        >
-          <p className="card-name">{candidate.name}</p>
-          <p className="card-email">{candidate.email}</p>
-        </div>
-      </Link>
-    );
-};
 
-// --- Droppable Kanban Column ---
+    return (
+        <Link to={`/candidates/${candidate.id}`} className="candidate-card-link">
+            <div ref={setNodeRef} style={style} className="candidate-card">
+                <div 
+                    className="drag-handle" 
+                    {...attributes} 
+                    {...listeners}
+                    // Stop click propagation to prevent navigation when dragging
+                    onClick={(e) => e.preventDefault()}
+                >
+                    <GripVertical className="icon" />
+                </div>
+                <div className="card-content">
+                    <p className="card-name">{candidate.name}</p>
+                    <p className="card-email">{candidate.email}</p>
+                </div>
+            </div>
+        </Link>
+    );
+});
+
+// --- Virtualized & Droppable Column ---
 const KanbanColumn = ({ id, title, candidates }) => {
+    // The Row component that react-window will render for each item
+    const Row = ({ index, style }) => (
+        <div style={style}>
+            <CandidateCard candidate={candidates[index]} />
+        </div>
+    );
+
     return (
         <div className="kanban-column">
             <h3 className="column-title">{title} ({candidates.length})</h3>
-            <SortableContext items={candidates.map(c => c.id)}>
-                <div className="column-content">
-                    {candidates.map(candidate => (
-                        <CandidateCard key={candidate.id} candidate={candidate} />
-                    ))}
-                </div>
-            </SortableContext>
+            <div className="column-content">
+                {/* SortableContext needs the full list of IDs, even if they aren't rendered */}
+                <SortableContext items={candidates.map(c => c.id)}>
+                    <List
+                        height={600} // This height should be adjusted based on your layout
+                        itemCount={candidates.length}
+                        itemSize={85} // The height of one card + margin
+                        width="100%"
+                        className="virtualized-list"
+                    >
+                        {Row}
+                    </List>
+                </SortableContext>
+            </div>
         </div>
     );
 };
@@ -134,8 +156,13 @@ const CandidatesBoard = () => {
                 <DragOverlay>
                     {activeCandidate ? (
                         <div className="candidate-card candidate-card-overlay">
-                            <p className="card-name">{activeCandidate.name}</p>
-                            <p className="card-email">{activeCandidate.email}</p>
+                             <div className="drag-handle">
+                                <GripVertical className="icon" />
+                            </div>
+                            <div className="card-content">
+                                <p className="card-name">{activeCandidate.name}</p>
+                                <p className="card-email">{activeCandidate.email}</p>
+                            </div>
                         </div>
                     ) : null}
                 </DragOverlay>

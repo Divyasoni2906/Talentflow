@@ -1,12 +1,15 @@
 import { http, HttpResponse, delay } from 'msw';
 import { faker } from '@faker-js/faker';
-import { db } from '../../db';
+import { db, STAGE_LABELS } from '../../db';
 
 // Ensure the database is seeded on startup
 db.on('ready', async () => {
     const { seedDatabase } = await import('../../db');
     seedDatabase();
 });
+
+
+const simulateError = () => Math.random() < 0.1;
 
 export const handlers = [
     // --- JOBS ---
@@ -16,9 +19,7 @@ export const handlers = [
         const search = url.searchParams.get('search') || '';
         const status = url.searchParams.get('status') || 'all';
         const pageSize = parseInt(url.searchParams.get('pageSize') || '10');
-
         await delay(faker.number.int({ min: 200, max: 800 }));
-
         let allJobs = await db.jobs.orderBy('order').toArray();
         if (status !== 'all') {
             allJobs = allJobs.filter(job => job.status === status);
@@ -26,16 +27,19 @@ export const handlers = [
         if (search) {
             allJobs = allJobs.filter(job => job.title.toLowerCase().includes(search.toLowerCase()));
         }
-
         const start = (page - 1) * pageSize;
         const end = start + pageSize;
         const paginatedJobs = allJobs.slice(start, end);
-
         return HttpResponse.json({ jobs: paginatedJobs, total: allJobs.length });
     }),
-
+    
     http.post('/jobs', async ({ request }) => {
+        if (simulateError()) return new HttpResponse(null, { status: 500, statusText: 'Server Error' });
         const newJob = await request.json();
+        const existingJob = await db.jobs.where('slug').equals(newJob.slug).first();
+        if (existingJob) {
+            return HttpResponse.json({ error: 'A job with this title already exists.' }, { status: 409 });
+        }
         const highestOrderJob = await db.jobs.orderBy('order').last();
         const newOrder = highestOrderJob ? highestOrderJob.order + 1 : 0;
         const jobWithId = { ...newJob, id: faker.string.uuid(), order: newOrder };
@@ -44,6 +48,7 @@ export const handlers = [
     }),
     
     http.patch('/jobs/:id', async ({ params, request }) => {
+        if (simulateError()) return new HttpResponse(null, { status: 500, statusText: 'Server Error' });
         const { id } = params;
         const updates = await request.json();
         await db.jobs.update(id, updates);
@@ -51,27 +56,21 @@ export const handlers = [
         return HttpResponse.json(updatedJob);
     }),
 
-    // Corrected reorder logic
     http.patch('/jobs/reorder', async ({ request }) => {
+        if (simulateError()) return new HttpResponse(null, { status: 500, statusText: 'Server Error' });
         const { fromId, toId } = await request.json();
         await db.transaction('rw', db.jobs, async () => {
             const allJobs = await db.jobs.orderBy('order').toArray();
             const fromIndex = allJobs.findIndex(j => j.id === fromId);
             const toIndex = allJobs.findIndex(j => j.id === toId);
-
             if (fromIndex === -1 || toIndex === -1) return;
-            
             const [movedItem] = allJobs.splice(fromIndex, 1);
             allJobs.splice(toIndex, 0, movedItem);
-
-            const updatePromises = allJobs.map((job, index) => 
-                db.jobs.update(job.id, { order: index })
-            );
+            const updatePromises = allJobs.map((job, index) => db.jobs.update(job.id, { order: index }));
             await Promise.all(updatePromises);
         });
         return HttpResponse.json({ success: true });
     }),
-
 
     // --- CANDIDATES ---
     http.get('/candidates', async ({ request }) => {
@@ -93,11 +92,10 @@ export const handlers = [
         }
         return new HttpResponse(null, { status: 404 });
     }),
-    // NEW: Handler for candidate timeline
+
     http.get('/candidates/:id/timeline', async ({ params }) => {
-        // This generates fake timeline data for demonstration
         await delay(300);
-        const events = Array.from({ length: faker.number.int({ min: 2, max: 5 }) }, (_, i) => ({
+        const events = Array.from({ length: faker.number.int({ min: 2, max: 5 }) }, () => ({
             id: faker.string.uuid(),
             date: faker.date.recent({ days: 30 }).toISOString(),
             event: `Moved to stage: ${faker.helpers.arrayElement(Object.values(STAGE_LABELS))}`,
@@ -107,6 +105,7 @@ export const handlers = [
     }),
 
     http.patch('/candidates/:id', async ({ params, request }) => {
+        if (simulateError()) return new HttpResponse(null, { status: 500, statusText: 'Server Error' });
         const { id } = params;
         const { stage } = await request.json();
         await db.candidates.update(id, { stage });
@@ -126,15 +125,17 @@ export const handlers = [
     }),
 
     http.put('/assessments/:jobId', async ({ params, request }) => {
+        if (simulateError()) return new HttpResponse(null, { status: 500, statusText: 'Server Error' });
         const { jobId } = params;
         const { structure } = await request.json();
         await db.assessments.put({ jobId, structure });
         return HttpResponse.json({ jobId, structure });
     }),
+
     http.post('/assessments/:jobId/submit', async ({ request }) => {
+        if (simulateError()) return new HttpResponse(null, { status: 500, statusText: 'Server Error' });
         const submission = await request.json();
         console.log("Assessment Submission Received:", submission);
-        // In a real app, this would be stored. Here, we just acknowledge it.
         await delay(800);
         return HttpResponse.json({ success: true, message: "Assessment submitted successfully!" });
     }),

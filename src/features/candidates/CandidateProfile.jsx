@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useGetCandidateByIdQuery, useGetCandidateTimelineQuery } from '../api/apiSlice';
-import { User, Briefcase, Calendar, MessageSquare } from 'lucide-react';
+import { User, Briefcase, Calendar, MessageSquare, ArrowLeft } from 'lucide-react';
 import '../../App.css';
 
 const CandidateProfile = () => {
@@ -14,6 +14,7 @@ const CandidateProfile = () => {
 
     return (
         <div className="candidate-profile-container">
+            <Link to="/candidates" className="back-link"><ArrowLeft className="icon" /> Back to Candidates</Link>
             <div className="profile-header">
                 <div className="profile-avatar"><User size={48} /></div>
                 <div className="profile-info">
@@ -25,7 +26,6 @@ const CandidateProfile = () => {
                     </div>
                 </div>
             </div>
-
             <div className="profile-timeline">
                 <h2>Candidate Timeline</h2>
                 {isLoadingTimeline && <p>Loading timeline...</p>}
@@ -46,3 +46,4 @@ const CandidateProfile = () => {
 };
 
 export default CandidateProfile;
+

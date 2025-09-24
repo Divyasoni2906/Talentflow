@@ -4,7 +4,7 @@ import { arrayMove } from '@dnd-kit/sortable';
 export const apiSlice = createApi({
     reducerPath: 'api',
     baseQuery: fetchBaseQuery({ baseUrl: '/' }),
-    tagTypes: ['Job', 'Candidate', 'Assessment'],
+    tagTypes: ['Job', 'Candidate', 'Assessment', 'CandidateTimeline'],
     endpoints: (builder) => ({
         // --- JOBS ---
         getJobs: builder.query({
@@ -12,10 +12,7 @@ export const apiSlice = createApi({
                 const { page = 1, search = '', status = 'all', pageSize = 10 } = args;
                 return `jobs?page=${page}&search=${search}&status=${status}&pageSize=${pageSize}`;
             },
-            providesTags: (result) =>
-                result?.jobs
-                    ? [ ...result.jobs.map(({ id }) => ({ type: 'Job', id })), { type: 'Job', id: 'LIST' } ]
-                    : [{ type: 'Job', id: 'LIST' }],
+            providesTags: (result) => result?.jobs ? [ ...result.jobs.map(({ id }) => ({ type: 'Job', id })), { type: 'Job', id: 'LIST' } ] : [{ type: 'Job', id: 'LIST' }],
         }),
         addJob: builder.mutation({
             query: (newJob) => ({ url: 'jobs', method: 'POST', body: newJob }),
@@ -27,30 +24,42 @@ export const apiSlice = createApi({
         }),
         reorderJobs: builder.mutation({
             query: ({ fromId, toId }) => ({ url: 'jobs/reorder', method: 'PATCH', body: { fromId, toId } }),
+            // This now correctly invalidates the list tag AFTER the mutation, preventing the snap-back.
             invalidatesTags: [{ type: 'Job', id: 'LIST' }],
         }),
 
         // --- CANDIDATES ---
         getCandidates: builder.query({
             query: ({ search = '' } = {}) => `candidates?search=${search}`,
-            providesTags: (result) =>
-                result?.candidates
-                    ? [ ...result.candidates.map(({ id }) => ({ type: 'Candidate', id })), { type: 'Candidate', id: 'LIST' } ]
-                    : [{ type: 'Candidate', id: 'LIST' }],
+            providesTags: (result) => result?.candidates ? [ ...result.candidates.map(({ id }) => ({ type: 'Candidate', id })), { type: 'Candidate', id: 'LIST' } ] : [{ type: 'Candidate', id: 'LIST' }],
         }),
-         // NEW: Get a single candidate by ID
         getCandidateById: builder.query({
             query: (id) => `candidates/${id}`,
             providesTags: (result, error, id) => [{ type: 'Candidate', id }],
         }),
-        // NEW: Get a candidate's timeline
         getCandidateTimeline: builder.query({
             query: (id) => `candidates/${id}/timeline`,
             providesTags: (result, error, id) => [{ type: 'CandidateTimeline', id }],
         }),
         updateCandidateStage: builder.mutation({
             query: ({ candidateId, newStage }) => ({ url: `candidates/${candidateId}`, method: 'PATCH', body: { stage: newStage } }),
-            invalidatesTags: (r, e, { candidateId }) => [{ type: 'Candidate', id: 'LIST' }, { type: 'Candidate', id: candidateId }],
+            // This now includes an optimistic update for a smoother UI
+            async onQueryStarted({ candidateId, newStage }, { dispatch, queryFulfilled }) {
+                const patchResult = dispatch(
+                    apiSlice.util.updateQueryData('getCandidates', { search: '' }, draft => {
+                        const candidate = draft.candidates.find(c => c.id === candidateId);
+                        if (candidate) {
+                            candidate.stage = newStage;
+                        }
+                    })
+                );
+                try {
+                    await queryFulfilled;
+                } catch {
+                    patchResult.undo();
+                }
+            },
+            invalidatesTags: (r, e, { candidateId }) => [{ type: 'Candidate', id: 'LIST' }, { type: 'Candidate', id: candidateId }, { type: 'CandidateTimeline', id: candidateId }],
         }),
 
         // --- ASSESSMENTS ---
@@ -59,20 +68,11 @@ export const apiSlice = createApi({
             providesTags: (result, error, jobId) => [{ type: 'Assessment', id: jobId }],
         }),
         updateAssessment: builder.mutation({
-            query: ({ jobId, structure }) => ({
-                url: `assessments/${jobId}`,
-                method: 'PUT',
-                body: { structure },
-            }),
-            // This line was missing. It tells the app to refetch the assessment after saving.
+            query: ({ jobId, structure }) => ({ url: `assessments/${jobId}`, method: 'PUT', body: { structure } }),
             invalidatesTags: (result, error, { jobId }) => [{ type: 'Assessment', id: jobId }],
         }),
         submitAssessment: builder.mutation({
-            query: ({ jobId, submission }) => ({
-                url: `assessments/${jobId}/submit`,
-                method: 'POST',
-                body: submission,
-            }),
+            query: ({ jobId, submission }) => ({ url: `assessments/${jobId}/submit`, method: 'POST', body: submission }),
         }),
     }),
 });
@@ -82,5 +82,4 @@ export const {
     useGetCandidatesQuery, useGetCandidateByIdQuery, useGetCandidateTimelineQuery, useUpdateCandidateStageMutation,
     useGetAssessmentQuery, useUpdateAssessmentMutation, useSubmitAssessmentMutation,
 } = apiSlice;
-
 
