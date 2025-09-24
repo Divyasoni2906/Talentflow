@@ -1,16 +1,15 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, closestCorners } from '@dnd-kit/core';
 import { SortableContext, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { FixedSizeList as List } from 'react-window'; // Import for virtualization
+import { useVirtualizer } from '@tanstack/react-virtual'; // Import the new library
 import { useGetCandidatesQuery, useUpdateCandidateStageMutation } from '../api/apiSlice';
 import { STAGE_LABELS, STAGE_ORDER } from '../../db';
 import { Search, GripVertical } from 'lucide-react';
 import '../../App.css';
 
-// --- Draggable Candidate Card ---
-// It's important to wrap this in React.memo for performance with virtualization
+// --- Draggable Candidate Card (No changes) ---
 const CandidateCard = React.memo(({ candidate }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: candidate.id,
@@ -20,17 +19,10 @@ const CandidateCard = React.memo(({ candidate }) => {
         transition,
         opacity: isDragging ? 0.5 : 1,
     };
-
     return (
         <Link to={`/candidates/${candidate.id}`} className="candidate-card-link">
             <div ref={setNodeRef} style={style} className="candidate-card">
-                <div 
-                    className="drag-handle" 
-                    {...attributes} 
-                    {...listeners}
-                    // Stop click propagation to prevent navigation when dragging
-                    onClick={(e) => e.preventDefault()}
-                >
+                <div className="drag-handle" {...attributes} {...listeners} onClick={(e) => e.preventDefault()}>
                     <GripVertical className="icon" />
                 </div>
                 <div className="card-content">
@@ -42,37 +34,46 @@ const CandidateCard = React.memo(({ candidate }) => {
     );
 });
 
-// --- Virtualized & Droppable Column ---
+// --- Virtualized & Droppable Column (Rewritten for TanStack Virtual) ---
 const KanbanColumn = ({ id, title, candidates }) => {
-    // The Row component that react-window will render for each item
-    const Row = ({ index, style }) => (
-        <div style={style}>
-            <CandidateCard candidate={candidates[index]} />
-        </div>
-    );
+    const parentRef = useRef(null);
+
+    const rowVirtualizer = useVirtualizer({
+        count: candidates.length,
+        getScrollElement: () => parentRef.current,
+        estimateSize: () => 85, // Height of one card + margin
+    });
 
     return (
         <div className="kanban-column">
             <h3 className="column-title">{title} ({candidates.length})</h3>
-            <div className="column-content">
-                {/* SortableContext needs the full list of IDs, even if they aren't rendered */}
-                <SortableContext items={candidates.map(c => c.id)}>
-                    <List
-                        height={600} // This height should be adjusted based on your layout
-                        itemCount={candidates.length}
-                        itemSize={85} // The height of one card + margin
-                        width="100%"
-                        className="virtualized-list"
-                    >
-                        {Row}
-                    </List>
-                </SortableContext>
+            <div ref={parentRef} className="column-content virtualized-list">
+                <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
+                    <SortableContext items={candidates.map(c => c.id)}>
+                        {rowVirtualizer.getVirtualItems().map(virtualItem => (
+                            <div
+                                key={virtualItem.key}
+                                style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    width: '100%',
+                                    height: `${virtualItem.size}px`,
+                                    transform: `translateY(${virtualItem.start}px)`,
+                                    padding: '5px 0',
+                                }}
+                            >
+                                <CandidateCard candidate={candidates[virtualItem.index]} />
+                            </div>
+                        ))}
+                    </SortableContext>
+                </div>
             </div>
         </div>
     );
 };
 
-// --- Main Candidates Board ---
+// --- Main Candidates Board (No other changes needed) ---
 const CandidatesBoard = () => {
     const [search, setSearch] = useState('');
     const { data: candidatesData, isLoading, isError } = useGetCandidatesQuery({ search });
