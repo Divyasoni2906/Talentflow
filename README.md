@@ -79,11 +79,3 @@ To get a local copy up and running, follow these simple steps.
 
 ---
 
-## 🚧 Known Issues & Future Improvements
-
-While the core functionality is complete, several advanced features from the original prompt are pending implementation:
-
-- **Candidate List Virtualization:** The current Kanban board renders all 1,000+ candidates. To optimize performance as required, a virtualized list (using a library like `react-window` or `tanstack-virtual`) should be implemented.
-- **Candidate Profile & Timeline:** The routes (`/candidates/:id`) and components for viewing a specific candidate's profile and their stage-change history are not yet built.
-- **Unique Slug Validation:** The mock API does not currently enforce that a job's URL slug is unique.
-- **Error Rate Simulation:** The requirement to inject a 5-10% error rate on write endpoints in the MSW handlers has not been fully implemented across all mutations.
