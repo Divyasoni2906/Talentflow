@@ -12,7 +12,7 @@ const QUESTION_TYPES = {
     'numeric': { label: 'Numeric', icon: <Hash className="icon" /> },
 };
 
-// --- Sub-component for editing choice options ---
+// --- Sub-components ---
 const ChoiceOptionsEditor = ({ question, sIndex, qIndex, handleStructureChange }) => {
     const handleOptionChange = (optIndex, value) => {
         const newOptions = [...question.options];
@@ -40,7 +40,6 @@ const ChoiceOptionsEditor = ({ question, sIndex, qIndex, handleStructureChange }
     );
 };
 
-// --- Question Settings Component ---
 const QuestionSettings = ({ question, sIndex, qIndex, allPreviousQuestions, handleStructureChange }) => {
     const [isOpen, setIsOpen] = useState(false);
     const handleValidationChange = (field, value) => {
@@ -49,10 +48,7 @@ const QuestionSettings = ({ question, sIndex, qIndex, allPreviousQuestions, hand
     };
     const handleConditionalChange = (field, value) => {
         const newConditional = { ...(question.conditional || { questionId: '', requiredAnswer: '' }), [field]: value };
-        // If questionId is cleared, clear the requiredAnswer as well
-        if (field === 'questionId' && !value) {
-            newConditional.requiredAnswer = '';
-        }
+        if (field === 'questionId' && !value) { newConditional.requiredAnswer = ''; }
         handleStructureChange(sIndex, qIndex, 'conditional', newConditional);
     };
     return (
@@ -68,21 +64,11 @@ const QuestionSettings = ({ question, sIndex, qIndex, allPreviousQuestions, hand
     );
 };
 
-
-// --- Live Preview Components (Now Fully Implemented) ---
 const PREVIEW_COMPONENTS = {
     'short-text': ({ label, validation }) => ( <div className="preview-question"><label>{label} {validation?.required && '*'}</label><input type="text" /></div> ),
     'long-text': ({ label, validation }) => ( <div className="preview-question"><label>{label} {validation?.required && '*'}</label><textarea rows="3"></textarea></div> ),
-    'single-choice': ({ id, label, validation, options = [] }) => (
-        <div className="preview-question"><label>{label} {validation?.required && '*'}</label>
-        {options.map((opt, i) => <div key={i} className="preview-option"><input type="radio" name={id} /><label>{opt}</label></div>)}
-        </div>
-    ),
-    'multi-choice': ({ label, validation, options = [] }) => (
-         <div className="preview-question"><label>{label} {validation?.required && '*'}</label>
-        {options.map((opt, i) => <div key={i} className="preview-option"><input type="checkbox" /><label>{opt}</label></div>)}
-        </div>
-    ),
+    'single-choice': ({ id, label, validation, options = [] }) => ( <div className="preview-question"><label>{label} {validation?.required && '*'}</label>{options.map((opt, i) => <div key={i} className="preview-option"><input type="radio" name={id} /><label>{opt}</label></div>)}</div> ),
+    'multi-choice': ({ label, validation, options = [] }) => ( <div className="preview-question"><label>{label} {validation?.required && '*'}</label>{options.map((opt, i) => <div key={i} className="preview-option"><input type="checkbox" /><label>{opt}</label></div>)}</div> ),
     'numeric': ({ label, validation }) => ( <div className="preview-question"><label>{label} {validation?.required && '*'}</label><input type="number" min={validation?.min} max={validation?.max} /></div> ),
 };
 
@@ -95,13 +81,9 @@ const FormPreview = ({ structure, allQuestions }) => {
                 <div key={section.id} className="preview-section">
                     <h3 className="preview-section-title">{section.title}</h3>
                     {section.questions?.map(q => {
-                        // This logic respects the conditional rules set in the builder
                         if (q.conditional?.questionId) {
-                            // In a real form, we'd check the form state. Here, we just hide it for preview purposes.
                              const dependsOn = allQuestions.find(item => item.id === q.conditional.questionId);
-                             if (dependsOn) {
-                                return <div key={q.id} className="preview-conditional-info"><em>Question "{q.label}" will show if "{dependsOn.label}" is answered with "{q.conditional.requiredAnswer}".</em></div>;
-                             }
+                             if (dependsOn) { return <div key={q.id} className="preview-conditional-info"><em>Question "{q.label}" will show if "{dependsOn.label}" is answered with "{q.conditional.requiredAnswer}".</em></div>; }
                         }
                         const QuestionComponent = PREVIEW_COMPONENTS[q.type];
                         return QuestionComponent ? <QuestionComponent key={q.id} {...q} /> : null;
@@ -122,32 +104,42 @@ const AssessmentBuilder = () => {
     const [updateAssessment, { isLoading: isSaving }] = useUpdateAssessmentMutation();
     const [structure, setStructure] = useState(null);
 
+    // This useEffect hook is now corrected to prevent state synchronization issues.
     useEffect(() => {
-        if (assessment?.structure) {
-            const sanitized = { ...assessment.structure, sections: (assessment.structure.sections || []).map(s => ({ ...s, questions: (s.questions || []).map(q => ({ ...q, validation: q.validation || { required: false }, conditional: q.conditional || null }))})) };
-            setStructure(sanitized);
-        } else if (jobId && !isLoadingAssessment) {
-            setStructure({ title: 'New Assessment', sections: [] });
-        } else if (!jobId) {
+        // Only try to set the structure if a job is selected.
+        if (jobId) {
+            if (assessment?.structure) {
+                // Sanitize incoming data to ensure it has the new properties
+                const sanitized = { 
+                    ...assessment.structure, 
+                    sections: (assessment.structure.sections || []).map(s => ({ 
+                        ...s, 
+                        questions: (s.questions || []).map(q => ({ 
+                            ...q, 
+                            validation: q.validation || { required: false }, 
+                            conditional: q.conditional || null 
+                        }))
+                    })) 
+                };
+                setStructure(sanitized);
+            } else if (!isLoadingAssessment) {
+                // If there's no assessment for this job, create a new blank one
+                setStructure({ title: 'New Assessment', sections: [] });
+            }
+        } else {
+            // If no job is selected, always clear the structure. This is the key fix.
             setStructure(null);
         }
     }, [assessment, jobId, isLoadingAssessment]);
     
-    // This function uses functional updates to avoid stale state issues and is more efficient
-    const setStructureField = (path, value) => {
-        setStructure(current => {
-            const newStructure = JSON.parse(JSON.stringify(current));
-            let target = newStructure;
-            for (let i = 0; i < path.length - 1; i++) {
-                target = target[path[i]];
-            }
-            target[path[path.length - 1]] = value;
-            return newStructure;
-        });
+    const handleStructureChange = (sIndex, qIndex, field, value) => {
+        const newStructure = JSON.parse(JSON.stringify(structure));
+        newStructure.sections[sIndex].questions[qIndex][field] = value;
+        setStructure(newStructure);
     };
     
     const handleAddSection = () => setStructure(s => ({ ...s, sections: [...(s.sections || []), { id: `s-${Date.now()}`, title: 'New Section', questions: [] }] }));
-    const handleDeleteSection = (sIndex) => setStructure(s => ({ ...s, sections: s.sections.filter((_, i) => i !== sIndex) }));
+    const handleDeleteSection = (sIndex) => setStructure(s => ({...s, sections: s.sections.filter((_, i) => i !== sIndex)}));
     const handleAddQuestion = (sIndex, type) => {
         const newQuestion = { id: `q-${Date.now()}`, type, label: 'New Question', validation: { required: false }, conditional: null, ...( (type === 'single-choice' || type === 'multi-choice') && { options: ['Option 1'] } )};
         setStructure(s => {
@@ -196,11 +188,15 @@ const AssessmentBuilder = () => {
 
                 {jobId ? ( isLoadingAssessment ? <div className="loading-state">Loading...</div> : ( structure && (
                             <>
-                                <input type="text" value={structure.title || ''} onChange={(e) => setStructureField(['title'], e.target.value)} className="assessment-title-input" />
+                                <input type="text" value={structure.title || ''} onChange={(e) => setStructure(s => ({ ...s, title: e.target.value }))} className="assessment-title-input" />
                                 {structure.sections?.map((section, sIndex) => (
                                     <div key={section.id} className="builder-section">
                                         <div className="section-header">
-                                            <input type="text" value={section.title} onChange={(e) => setStructureField(['sections', sIndex, 'title'], e.target.value)} className="section-title-input" />
+                                            <input type="text" value={section.title} onChange={(e) => {
+                                                const newStructure = JSON.parse(JSON.stringify(structure));
+                                                newStructure.sections[sIndex].title = e.target.value;
+                                                setStructure(newStructure);
+                                            }} className="section-title-input" />
                                             <button onClick={() => handleDeleteSection(sIndex)} className="delete-btn"><Trash2 className="icon" /></button>
                                         </div>
                                         {section.questions?.map((q, qIndex) => {
@@ -208,12 +204,12 @@ const AssessmentBuilder = () => {
                                             return (
                                                 <div key={q.id} className="question-editor">
                                                     <div className="question-header">
-                                                        <input value={q.label} onChange={(e) => setStructureField(['sections', sIndex, 'questions', qIndex, 'label'], e.target.value)} className="question-label-input" />
+                                                        <input value={q.label} onChange={(e) => handleStructureChange(sIndex, qIndex, 'label', e.target.value)} className="question-label-input" />
                                                         <button onClick={() => handleDeleteQuestion(sIndex, qIndex)} className="delete-btn small-btn"><X className="icon"/></button>
                                                     </div>
                                                     <div className="question-type-label">{QUESTION_TYPES[q.type].label}</div>
-                                                    {(q.type === 'single-choice' || q.type === 'multi-choice') && ( <ChoiceOptionsEditor question={q} sIndex={sIndex} qIndex={qIndex} handleStructureChange={(...args) => setStructureField(['sections', ...args])} /> )}
-                                                    <QuestionSettings question={q} sIndex={sIndex} qIndex={qIndex} allPreviousQuestions={prevQs} handleStructureChange={(...args) => setStructureField(['sections', ...args])} />
+                                                    {(q.type === 'single-choice' || q.type === 'multi-choice') && ( <ChoiceOptionsEditor question={q} sIndex={sIndex} qIndex={qIndex} handleStructureChange={handleStructureChange} /> )}
+                                                    <QuestionSettings question={q} sIndex={sIndex} qIndex={qIndex} allPreviousQuestions={prevQs} handleStructureChange={handleStructureChange} />
                                                 </div>
                                             )
                                         })}

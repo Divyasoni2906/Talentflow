@@ -175,15 +175,32 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--c
     color: var(--color-text-secondary);
 }
 
-/* --- Live Preview Pane --- */
-.preview-panel { background-color: var(--color-bg-dark); border-radius: var(--radius-lg); border: 1px solid var(--color-border); }
+/* --- IMPROVED: Live Preview Pane --- */
+.preview-panel { background-color: var(--color-bg-light); border-radius: var(--radius-lg); border: 1px solid var(--color-border); }
 .form-preview { padding: var(--spacing-4); }
 .preview-title { font-size: 1.5rem; font-weight: bold; margin-bottom: var(--spacing-6); padding-bottom: var(--spacing-4); border-bottom: 1px solid var(--color-border); }
 .preview-section { margin-bottom: var(--spacing-6); }
 .preview-section-title { font-size: 1.1rem; font-weight: 600; margin-bottom: var(--spacing-4); }
 .preview-question { margin-bottom: var(--spacing-4); }
 .preview-question label { display: block; font-weight: 500; margin-bottom: var(--spacing-2); }
+
+/* Make preview inputs match the main app inputs */
+.preview-question input[type="text"],
+.preview-question input[type="number"],
+.preview-question textarea {
+    background-color: var(--color-bg-dark); /* Slightly darker bg for preview */
+}
 .preview-option { display: flex; align-items: center; gap: var(--spacing-2); margin-top: var(--spacing-2); }
+.preview-option input { width: auto; } /* Prevent radio/checkbox from taking full width */
+.preview-conditional-info {
+    font-size: 0.875rem;
+    font-style: italic;
+    color: var(--color-text-secondary);
+    background-color: var(--color-bg-dark);
+    padding: var(--spacing-3);
+    border-radius: var(--radius-md);
+    border-left: 3px solid var(--color-primary);
+}
 
 
 /* --- NEW: Candidate Profile Page --- */
