@@ -2,7 +2,7 @@
 
 TalentFlow is a modern, front-end-only React application designed to simulate a real-world hiring platform for HR teams. It provides a complete suite of tools to manage job postings, track candidates through the hiring pipeline, and build custom assessments—all without a traditional backend server.
 
-**Live Demo Link:** `[Link to your deployed application]`
+**Live Demo Link:** `https://talent-flow-hr.netlify.app`
 
 ## ✅ Core Features Implemented
 
