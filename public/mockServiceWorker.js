@@ -172,7 +172,7 @@ async function handleRequest(event, requestId, requestInterceptedAt) {
  * that registered the worker. It's with the latter the worker should
  * communicate with during the response resolving phase.
  * @param {FetchEvent} event
- * @returns {Promise<client | undefined>}
+ * @returns {Promise<Client | undefined>}
  */
 
 async function resolveMainClient(event) {
