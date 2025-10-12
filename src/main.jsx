@@ -6,12 +6,10 @@ import App from './App';
 import './index.css';
 
 async function main() {
-  // We only enable mocking in the development environment.
-  // When you switch to a real backend, you can remove this entire function.
-  if (process.env.NODE_ENV === 'development') {
-    const { worker } = await import('./features/mocks/browser');
-    await worker.start();
-  }
+  // The 'if' condition has been removed.
+  // This ensures the mock server will start in both development AND production.
+  const { worker } = await import('./features/mocks/browser');
+  await worker.start();
 
   ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
@@ -21,5 +19,6 @@ async function main() {
     </React.StrictMode>
   );
 }
+
 main();
 
