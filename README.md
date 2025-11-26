@@ -6,7 +6,7 @@ TalentFlow is a modern, front-end-only React application designed to simulate a 
 
 ## ✅ Core Features Implemented
 
-The application successfully implements all core features from the project description, divided into three primary workflows.
+The application successfully implements all core features, divided into three primary workflows.
 
 ### 1. 📋 Jobs Board
 
