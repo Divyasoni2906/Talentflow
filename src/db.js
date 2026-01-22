@@ -22,7 +22,6 @@ export const STAGE_LABELS = {
 };
 
 // --- Database Seeding Function ---
-// This function creates the initial fake data for the application.
 export const seedDatabase = async () => {
     try {
         const jobCount = await db.jobs.count();
