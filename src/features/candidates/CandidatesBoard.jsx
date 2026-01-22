@@ -9,7 +9,7 @@ import { STAGE_LABELS, STAGE_ORDER } from '../../db';
 import { Search, GripVertical } from 'lucide-react';
 import '../../App.css';
 
-// --- Draggable Candidate Card (No changes) ---
+// --- Draggable Candidate Card ---
 const CandidateCard = React.memo(({ candidate }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: candidate.id,
@@ -34,7 +34,7 @@ const CandidateCard = React.memo(({ candidate }) => {
     );
 });
 
-// --- Virtualized & Droppable Column (Rewritten for TanStack Virtual) ---
+// --- Virtualized & Droppable Column ---
 const KanbanColumn = ({ id, title, candidates }) => {
     const parentRef = useRef(null);
 
@@ -73,7 +73,7 @@ const KanbanColumn = ({ id, title, candidates }) => {
     );
 };
 
-// --- Main Candidates Board (No other changes needed) ---
+// --- Main Candidates Board  ---
 const CandidatesBoard = () => {
     const [search, setSearch] = useState('');
     const { data: candidatesData, isLoading, isError } = useGetCandidatesQuery({ search });
