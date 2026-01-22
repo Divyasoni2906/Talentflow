@@ -5,24 +5,16 @@ import { store } from './app/store';
 import App from './App';
 import './index.css';
 
-async function enableMocks() {
-  if (import.meta.env.DEV) {
-    const { worker } = await import('./features/mocks/browser');
-    return worker.start();
-  }
-}
-
-const container = document.getElementById('root');
-const root = ReactDOM.createRoot(container);
-
-root.render(
-  <React.StrictMode>
-    <Provider store={store}>
-      <App />
-    </Provider>
-  </React.StrictMode>
-);
-
-enableMocks();
+async function main() { const { worker } = await import('./features/mocks/browser'); 
+await worker.start(); 
+ReactDOM.createRoot(document.getElementById('root')).render( 
+  <React.StrictMode> 
+  <Provider store={store}> 
+  <App /> 
+</Provider> 
+</React.StrictMode> 
+); 
+} 
+main();
 
 
