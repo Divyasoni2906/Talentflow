@@ -104,12 +104,9 @@ const AssessmentBuilder = () => {
     const [updateAssessment, { isLoading: isSaving }] = useUpdateAssessmentMutation();
     const [structure, setStructure] = useState(null);
 
-    // This useEffect hook is now corrected to prevent state synchronization issues.
     useEffect(() => {
-        // Only try to set the structure if a job is selected.
         if (jobId) {
             if (assessment?.structure) {
-                // Sanitize incoming data to ensure it has the new properties
                 const sanitized = { 
                     ...assessment.structure, 
                     sections: (assessment.structure.sections || []).map(s => ({ 
@@ -127,7 +124,7 @@ const AssessmentBuilder = () => {
                 setStructure({ title: 'New Assessment', sections: [] });
             }
         } else {
-            // If no job is selected, always clear the structure. This is the key fix.
+            // If no job is selected, always clear the structure.
             setStructure(null);
         }
     }, [assessment, jobId, isLoadingAssessment]);
