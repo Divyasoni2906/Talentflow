@@ -6,8 +6,6 @@ import App from './App';
 import './index.css';
 
 async function main() {
-  // The 'if' condition has been removed.
-  // This ensures the mock server will start in both development AND production.
   const { worker } = await import('./features/mocks/browser');
   await worker.start();
 
