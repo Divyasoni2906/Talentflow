@@ -81,7 +81,7 @@ const JobItem = ({ job, onEdit }) => {
                 <div className="job-tags">{job.tags.map(tag => <span key={tag} className="job-tag">{tag}</span>)}</div>
             </div>
             <div className="job-item-actions">
-                {/* Candidates only see an "Active" status for clarity */}
+               
                 {role === 'hr' && ( <span className={`job-status status-${job.status}`}>{job.status}</span> )}
                 {role === 'hr' ? (
                     <>
@@ -107,7 +107,6 @@ const JobsBoard = () => {
     const [jobs, setJobs] = useState([]);
     const { role } = useUser();
 
-    // This is the key fix: The API will now only request 'active' jobs for candidates.
     const finalStatusForQuery = role === 'candidate' ? 'active' : status;
     const queryArgs = { page, search, status: finalStatusForQuery };
     
